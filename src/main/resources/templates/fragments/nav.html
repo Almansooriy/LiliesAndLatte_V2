@@ -1,0 +1,42 @@
+<div class="nav" th:fragment="nav">
+    <div class="nav-left">
+        <a href="/" class="brand-logo">
+            <img th:src="@{/logo2.png}" alt="Lilies & Latte Logo" class="logo-img" />
+            <span class="brand-name">Lilies & Latte</span>
+        </a>
+        <a href="/">Home</a>
+        <a href="/menu">Menu</a>
+        <a href="/profile" sec:authorize="isAuthenticated()">Profile</a>
+        <a href="/orders" sec:authorize="isAuthenticated()">My Orders</a>
+    </div>
+    <div class="nav-right">
+        <a href="/cart" class="cart-badge" sec:authorize="isAuthenticated()" aria-label="View cart">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/>
+            </svg>
+            <span class="cart-count" id="cart-count" aria-live="polite">0</span>
+        </a>
+        <span class="user-info" sec:authorize="isAuthenticated()" th:text="${currentUser != null ? currentUser.fullName : 'User'}">Guest</span>
+        <a href="/login" sec:authorize="!isAuthenticated()" class="btn-nav">Login</a>
+        <a href="/register" sec:authorize="!isAuthenticated()" class="btn-nav">Register</a>
+        <form th:action="@{/logout}" method="post" class="inline-form" sec:authorize="isAuthenticated()">
+            <button type="submit" class="btn-nav btn-danger">Logout</button>
+        </form>
+    </div>
+    <script sec:authorize="isAuthenticated()">
+        // Update cart count on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+             try {
+                const response = await fetch('/api/cart');
+                if (response.ok) {
+                    const cart = await response.json();
+                    const count = cart.cartItems ? cart.cartItems.reduce((sum, item) => sum + item.quantity, 0) : 0;
+                    const badge = document.getElementById('cart-count');
+                    if(badge) badge.textContent = count;
+                }
+            } catch (error) {
+                console.error('Error updating cart count:', error);
+            }
+        });
+    </script>
+</div>

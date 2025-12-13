@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shopping Cart - Lilies & Latte</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}" />
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #fffaf5; color: #1f1f1f; }
+        .nav { background-color: #ffffff; padding: 12px 18px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
+        .nav-left a { margin-right: 20px; text-decoration: none; color: #1f1f1f; font-weight: bold; transition: color 0.3s; }
+        .nav-left a:hover { color: #51372c; }
+        .nav-right { display: flex; align-items: center; gap: 15px; }
+        .user-info { font-weight: 500; }
+        .btn-logout { padding: 8px 16px; background-color: #b71c1c; color: white; text-decoration: none; border-radius: 4px; border: none; cursor: pointer; }
+        .container { max-width: 1000px; margin: 30px auto; padding: 20px; }
+        h1 { text-align: center; color: #6B4E3A; margin-bottom: 28px; font-size: 2.1em; }
+        .cart-container { display: grid; grid-template-columns: 1fr 350px; gap: 30px; }
+        .cart-items { background-color: #fff; border-radius: 8px; padding: 22px; box-shadow: 0 6px 18px rgba(32,37,41,0.06); }
+        .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid #f7f6f5; }
+        .cart-item:last-child { border-bottom: none; }
+        .item-info { flex: 1; }
+        .item-name { font-size: 1.2em; font-weight: bold; color: #1f1f1f; margin-bottom: 5px; }
+        .item-price { color: #51372c; font-size: 1.1em; }
+        .item-controls { display: flex; align-items: center; gap: 15px; }
+        .quantity-control { display: flex; align-items: center; gap: 10px; }
+        .qty-btn { width: 36px; height: 36px; border: none; background-color: #6B4E3A; color: white; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .qty-btn:hover { background-color: #51372c; }
+        .qty-display { font-size: 1.1em; font-weight: bold; min-width: 30px; text-align: center; }
+        .remove-btn { padding: 8px 15px; background-color: #b71c1c; color: white; border: none; border-radius: 6px; cursor: pointer; }
+        .remove-btn:hover { background-color: #961417; }
+        .cart-summary { background-color: #fff; border-radius: 8px; padding: 18px; box-shadow: 0 6px 18px rgba(32,37,41,0.06); height: fit-content; position: sticky; top: 20px; }
+        .summary-row { display: flex; justify-content: space-between; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #f7f6f5; }
+        .summary-label { color: #51372c; }
+        .summary-value { font-weight: bold; color: #1f1f1f; }
+        .total-row { font-size: 1.5em; border-top: 2px solid #51372c; padding-top: 15px; margin-top: 15px; border-bottom: none; }
+        .checkout-btn { width: 100%; padding: 14px; background-color: #2E7D32; color: white; border: none; border-radius: 6px; font-size: 1.05em; font-weight: bold; cursor: pointer; margin-top: 16px; transition: background-color 0.2s; }
+        .checkout-btn:hover { background-color: #265f26; }
+        .checkout-btn:disabled { background-color: #ccc; cursor: not-allowed; }
+        .continue-shopping { display: block; text-align: center; margin-top: 15px; color: #51372c; text-decoration: none; font-weight: bold; }
+        .continue-shopping:hover { color: #3b5d49; }
+        .empty-cart { text-align: center; padding: 60px 20px; }
+        .empty-cart h2 { color: #51372c; margin-bottom: 15px; }
+        .empty-cart p { color: #51372c; margin-bottom: 25px; }
+        .btn-primary { display: inline-block; padding: 12px 24px; background-color: #6B4E3A; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; }
+        .btn-primary:hover { background-color: #51372c; }
+        .loading { text-align: center; padding: 40px; font-size: 1.2em; color: #6B4E3A; }
+        @media (max-width: 768px) {
+            .cart-container { grid-template-columns: 1fr; }
+            .cart-summary { position: static; }
+        }
+    </style>
+</head>
+<body>
+    <div th:replace="~{fragments/nav :: nav}"></div>
+
+    <div class="container">
+        <h1>Shopping Cart</h1>
+        <div id="cart-notification" aria-live="polite" role="status" class="cart-notification"></div>
+        <div id="cart-container">
+            <div class="loading">Loading your cart...</div>
+        </div>
+    </div>
+
+    <script>
+        let cart = null;
+
+        async function loadCart() {
+            try {
+                const response = await fetch('/api/cart');
+                if (!response.ok) throw new Error('Failed to load cart');
+                
+                cart = await response.json();
+                displayCart();
+            } catch (error) {
+                console.error('Error loading cart:', error);
+                document.getElementById('cart-container').innerHTML = 
+                    '<div class="empty-cart"><h2>Error loading cart</h2><p>Please try again later.</p></div>';
+            }
+        }
+
+        function displayCart() {
+            const container = document.getElementById('cart-container');
+            
+            if (!cart || !cart.cartItems || cart.cartItems.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-cart">
+                        <h2>Your cart is empty</h2>
+                        <p>Add some delicious items from our menu!</p>
+                        <a href="/menu" class="btn-primary">Browse Menu</a>
+                    </div>
+                `;
+                return;
+            }
+
+            const subtotal = cart.cartItems.reduce((sum, item) => 
+                sum + (item.menuItem.price * item.quantity), 0);
+            const tax = subtotal * 0.08; // 8% tax
+            const total = subtotal + tax;
+
+            container.innerHTML = `
+                <div class="cart-items">
+                    ${cart.cartItems.map(item => `
+                        <div class="cart-item" data-item-id="${item.id}">
+                            <div class="item-info">
+                                <div class="item-name">${item.menuItem.name}</div>
+                                <div class="item-price">SAR ${item.menuItem.price.toFixed(2)} each</div>
+                            </div>
+                            <div class="item-controls">
+                                <div class="quantity-control">
+                                    <button class="qty-btn" aria-label="Decrease quantity for ${item.menuItem.name}" onclick="updateQuantity(${item.id}, ${item.quantity - 1})">-</button>
+                                    <span class="qty-display">${item.quantity}</span>
+                                    <button class="qty-btn" aria-label="Increase quantity for ${item.menuItem.name}" onclick="updateQuantity(${item.id}, ${item.quantity + 1})">+</button>
+                                </div>
+                                <div class="item-price">SAR ${ (item.menuItem.price * item.quantity).toFixed(2) }</div>
+                                <button class="remove-btn" aria-label="Remove ${item.menuItem.name} from cart" onclick="removeItem(${item.id})">Remove</button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="cart-summary">
+                    <h2 class="section-heading">Order Summary</h2>
+                    <div class="summary-row">
+                        <span class="summary-label">Subtotal:</span>
+                        <span class="summary-value">SAR ${subtotal.toFixed(2)}</span>
+                    </div>
+                    <div class="summary-row">
+                        <span class="summary-label">Tax (8%):</span>
+                        <span class="summary-value">SAR ${tax.toFixed(2)}</span>
+                    </div>
+                    <div class="summary-row total-row">
+                        <span class="summary-label">Total:</span>
+                        <span class="summary-value">SAR ${total.toFixed(2)}</span>
+                    </div>
+                    <button class="checkout-btn" aria-label="Proceed to checkout" onclick="checkout()">Proceed to Checkout</button>
+                    <a href="/menu" class="continue-shopping">Continue Shopping</a>
+                </div>
+            `;
+        }
+
+        async function updateQuantity(itemId, newQuantity) {
+            if (newQuantity < 1) {
+                removeItem(itemId);
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/cart/items/${itemId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ quantity: newQuantity })
+                });
+
+                if (response.ok) {
+                    await loadCart();
+                }
+            } catch (error) {
+                console.error('Error updating quantity:', error);
+                alert('Failed to update quantity');
+            }
+        }
+
+        async function removeItem(itemId) {
+            if (!confirm('Remove this item from cart?')) return;
+
+            try {
+                const response = await fetch(`/api/cart/items/${itemId}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    await loadCart();
+                }
+            } catch (error) {
+                console.error('Error removing item:', error);
+                alert('Failed to remove item');
+            }
+        }
+
+        async function checkout() {
+            if (!cart || !cart.cartItems || cart.cartItems.length === 0) {
+                alert('Your cart is empty');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/orders/checkout', {
+                    method: 'POST'
+                });
+                if (response.ok) {
+                    showNotification('Order placed successfully!', 'success');
+                    // Redirect to orders page to show status
+                    setTimeout(() => { window.location.href = '/orders'; }, 800);
+                } else if (response.status === 401) {
+                    showNotification('Please login to place an order', 'error');
+                } else {
+                    showNotification('Failed to place order', 'error');
+                }
+            } catch (err) {
+                console.error('Checkout error:', err);
+                showNotification('Error during checkout', 'error');
+            }
+        }
+
+            function showNotification(message, type = 'success') {
+                const container = document.getElementById('cart-notification');
+                container.textContent = message;
+                container.className = type === 'error' ? 'notification error' : 'notification success';
+                // Clear after a few seconds
+                setTimeout(() => { container.textContent = ''; container.className = 'cart-notification'; }, 3500);
+            }
+
+        document.addEventListener('DOMContentLoaded', loadCart);
+    </script>
+</body>
+</html>
