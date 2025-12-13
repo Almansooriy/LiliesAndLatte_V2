@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Lilies & Latte</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}" />
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #fffaf5; color: #1f1f1f; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        .login-container { background-color: #fff; padding: 28px; border-radius: 10px; box-shadow: 0 6px 18px rgba(32,37,41,0.06); width: 100%; max-width: 360px; }
+        h2 { text-align: center; color: #6B4E3A; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 5px; }
+        .form-group input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
+        .btn { width: 100%; padding: 12px; background-color: #6B4E3A; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 1.05em; }
+        .alert { color: red; text-align: center; margin-bottom: 15px; }
+        .register-link { text-align: center; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h2>Login</h2>
+        <div th:if="${param.error}" class="alert" role="alert" aria-live="assertive">
+            Invalid username or password.
+        </div>
+        <form th:action="@{/login}" method="post">
+            <div class="form-group">
+                <label for="username">Email</label>
+                <input type="text" id="username" name="username" required autofocus aria-required="true" aria-label="Email address">
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required aria-required="true" aria-label="Password">
+            </div>
+            <button type="submit" class="btn" aria-label="Sign In">Sign In</button>
+        </form>
+        <div class="register-link">
+            <p>Don't have an account? <a href="/register">Register here</a></p>
+        </div>
+    </div>
+</body>
+</html>

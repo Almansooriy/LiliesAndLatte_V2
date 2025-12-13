@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Orders - Lilies & Latte</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}" />
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #fffaf5; color: #1f1f1f; }
+        .nav { background-color: #ffffff; padding: 12px 18px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
+        .nav-left a { margin-right: 20px; text-decoration: none; color: #1f1f1f; font-weight: bold; transition: color 0.3s; }
+        .nav-left a:hover { color: #51372c; }
+        .nav-right { display: flex; align-items: center; gap: 15px; }
+        .user-info { font-weight: 500; }
+        .btn-logout { padding: 8px 16px; background-color: #b71c1c; color: white; text-decoration: none; border-radius: 4px; border: none; cursor: pointer; }
+        .container { max-width: 1200px; margin: 30px auto; padding: 20px; }
+        h1 { text-align: center; color: #6B4E3A; margin-bottom: 24px; font-size: 2.25em; }
+        .orders-list { display: flex; flex-direction: column; gap: 20px; }
+        .order-card { background-color: #fff; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); padding: 25px; transition: transform 0.2s; }
+        .order-card:hover { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(0,0,0,0.15); }
+        .order-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 2px solid #f7f6f5; }
+        .order-id { font-weight: bold; font-size: 1.2em; color: #6B4E3A; }
+        .order-date { color: #51372c; font-size: 0.9em; }
+        .order-status { padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 0.85em; text-transform: uppercase; }
+        .status-PENDING { background-color: #fff3e0; color: #e65100; }
+        .status-PREPARING { background-color: #e3f2fd; color: #1565c0; }
+        .status-READY_FOR_PICKUP { background-color: #e8f5e9; color: #2e7d32; }
+        .status-COMPLETED { background-color: #f3e5f5; color: #6a1b9a; }
+        .status-CANCELLED { background-color: #ffebee; color: #c62828; }
+        .order-items { margin: 15px 0; }
+        .order-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f7f6f5; }
+        .item-name { font-weight: 500; }
+        .item-quantity { color: #51372c; }
+        .item-price { font-weight: bold; color: #1f1f1f; }
+        .order-total { text-align: right; margin-top: 15px; font-size: 1.15em; font-weight: bold; color: #1f1f1f; }
+        .no-orders { text-align: center; padding: 60px 20px; }
+        .no-orders img { width: 200px; margin-bottom: 20px; opacity: 0.5; }
+        .no-orders h2 { color: #51372c; margin-bottom: 15px; }
+        .no-orders p { color: #51372c; margin-bottom: 25px; }
+        .btn-primary { display: inline-block; padding: 12px 20px; background-color: #6B4E3A; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; transition: background-color 0.18s; }
+        .btn-primary:hover { background-color: #51372c; }
+        .loading { text-align: center; padding: 40px; font-size: 1.2em; color: #6B4E3A; }
+    </style>
+</head>
+<body>
+    <div th:replace="~{fragments/nav :: nav}"></div>
+
+    <div class="container">
+        <h1>My Orders</h1>
+        <div id="orders-container" class="orders-list">
+            <div class="loading">Loading your orders...</div>
+        </div>
+    </div>
+
+    <script>
+        // Fetch and display orders
+        async function loadOrders() {
+            try {
+                // In production, fetch the authenticated user's orders
+                const response = await fetch(`/api/orders/me`);
+                
+                if (!response.ok) {
+                    throw new Error('Failed to load orders');
+                }
+
+                const orders = await response.json();
+                displayOrders(orders);
+            } catch (error) {
+                console.error('Error loading orders:', error);
+                document.getElementById('orders-container').innerHTML = 
+                    '<div class="no-orders"><h2>Error loading orders</h2><p>Please try again later.</p></div>';
+            }
+        }
+
+        function displayOrders(orders) {
+            const container = document.getElementById('orders-container');
+            
+            if (!orders || orders.length === 0) {
+                container.innerHTML = `
+<div class="no-orders">
+                        <img src="https://cdn.dribbble.com/users/992832/screenshots/7222353/media/4488566234320964b38d339a00ddfd83.jpg" alt="No Orders">
+                        <h2>No orders yet</h2>
+                        <p>Start by browsing our menu and placing your first order!</p>
+                        <a href="/menu" class="btn-primary">Browse Menu</a>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = orders.map(order => `
+                <div class="order-card">
+                    <div class="order-header">
+                        <div>
+                            <div class="order-id">Order #${order.id}</div>
+                            <div class="order-date">${new Date(order.createdAt).toLocaleString()}</div>
+                        </div>
+                        <div class="order-status status-${order.status}">${order.status.replace('_', ' ')}</div>
+                    </div>
+                    <div class="order-items">
+                        ${order.orderDetails ? order.orderDetails.map(detail => `
+                                <div class="order-item">
+                                    <span class="item-name">${detail.menuItem.name}</span>
+                                    <span class="item-quantity">x${detail.quantity}</span>
+                                    <span class="item-price">SAR ${(detail.priceAtPurchase * detail.quantity).toFixed(2)}</span>
+                                </div>
+                        `).join('') : ''}
+                    </div>
+                    <div class="order-total">
+                            Total: SAR ${order.totalAmount.toFixed(2)}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Load orders when page loads and poll for updates every 10s
+        document.addEventListener('DOMContentLoaded', () => {
+            loadOrders();
+            setInterval(loadOrders, 10000);
+        });
+    </script>
+</body>
+</html>
