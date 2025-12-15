@@ -94,7 +94,7 @@ http://localhost:8080
 URL: `http://localhost:8080/h2-console`
 
 **Connection Details:**
-- JDBC URL: `jdbc:h2:mem:liliesandlatte`
+- JDBC URL: `jdbc:h2:file:./data/testdb`
 - Username: `sa`
 - Password: (leave blank)
 

@@ -55,7 +55,7 @@
 ## first way
 - **step 1** Go to src\main\java\LiliesApplication.java
 - **step 2** press run java 
--            Wait until it's finished and appears (Sample menu items created in terminal)
+-            Wait until it's finished
 - **step 3** copy http://localhost:8080    
 - **step 4** go to chrome and paste in URL to open website
 -            you can registr or login
@@ -75,7 +75,7 @@
 -            to open h2 database 
 - **step 7** copy http://localhost:8080/h2-console
   - refill information
-  - JDBC URL: `jdbc:h2:mem:liliesandlatte`
+  - JDBC URL: `jdbc:h2:file:./data/testdb`
   - Username: `sa`
   - Password: (leave empty)
   - press connect then from here we can to mange database
@@ -105,7 +105,7 @@ java -jar target/app-0.0.1-SNAPSHOT.jar
 ### 4. Access the Application
 - **Main Application**: http://localhost:8080
 - **H2 Console**: http://localhost:8080/h2-console
-  - JDBC URL: `jdbc:h2:mem:liliesandlatte`
+  - JDBC URL: `jdbc:h2:file:./data/testdb`
   - Username: `sa`
   - Password: (leave empty)
 
